@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(ImGuiApp LANGUAGES CXX)
+project(WAM01_VCU_Panel LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -14,6 +14,7 @@ find_package(glfw3 REQUIRED)
 # ImGui sources
 # =========================
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/imgui)
+set(3RD_PARTY_DIR ${CMAKE_SOURCE_DIR}/3rd_party)
 
 set(IMGUI_SRC
     ${IMGUI_DIR}/imgui.cpp
@@ -29,6 +30,7 @@ add_library(imgui STATIC ${IMGUI_SRC})
 target_include_directories(imgui PUBLIC
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+    ${3RD_PARTY_DIR}
 )
 
 # =========================
@@ -36,6 +38,10 @@ target_include_directories(imgui PUBLIC
 # =========================
 add_executable(app
     src/main.cpp
+)
+target_include_directories(app PRIVATE
+
+    ${CMAKE_SOURCE_DIR}/3rd_party
 )
 
 target_include_directories(app PRIVATE

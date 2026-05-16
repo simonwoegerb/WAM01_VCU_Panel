@@ -1,3 +1,5 @@
+#define STB_IMAGE_IMPLEMENTATION
+#include "../3rd_party/stb_image.h"
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
@@ -11,6 +13,52 @@
 #if defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
 #include <glad/glad.h>
 #endif
+GLuint LoadTextureFromFile(const char* path)
+{
+    int width, height, channels;
+
+    stbi_set_flip_vertically_on_load(true);
+
+    unsigned char* data =
+        stbi_load(path, &width, &height, &channels, 4);
+
+    if (!data)
+    {
+        printf("Failed to load image: %s\n", path);
+        return 0;
+    }
+
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D,
+        GL_TEXTURE_MIN_FILTER,
+        GL_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_2D,
+        GL_TEXTURE_MAG_FILTER,
+        GL_LINEAR);
+
+    // IMPORTANT
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGBA,
+        width,
+        height,
+        0,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        data
+    );
+
+    stbi_image_free(data);
+
+    return texture;
+}
 
 int main() {
     // -----------------------
@@ -51,6 +99,8 @@ int main() {
     // Backend init
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
+    GLuint logo_texture =
+    LoadTextureFromFile("resources/logo.jpg");
 
     // -----------------------
     // Main loop
@@ -72,8 +122,13 @@ static bool show_submenu = true;
 // =========================
 if (ImGui::BeginMainMenuBar())
 {
+	    ImGui::Image(
+        (ImTextureID)(intptr_t)logo_texture,
+        ImVec2(24, 24)
+    );
     if (ImGui::BeginMenu("Windows"))
     {
+
         ImGui::MenuItem("Submenu", nullptr, &show_submenu);
         ImGui::MenuItem("Console", nullptr, &show_console);
         ImGui::EndMenu();
@@ -92,7 +147,7 @@ if (show_submenu)
     ImGui::Text("This is a separate window");
 
     static float slider = 0.5f;
-    ImGui::SliderFloat("Value", &slider, 0.0f, 1.0f);
+    ImGui::SliderFloat("Values", &slider, 0.0f, 1.0f);
 
     ImGui::End();
 }
