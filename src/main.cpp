@@ -57,30 +57,33 @@ int main() {
     // -----------------------
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-
-        // Start frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
+ImGui_ImplOpenGL3_NewFrame();
+ImGui_ImplGlfw_NewFrame();
 ImGui::NewFrame();
+
+// =========================
+// GLOBAL STATE
+// =========================
 static bool show_console = true;
 static bool show_submenu = true;
-// =========================
-// MAIN MENU WINDOW
-// =========================
-    ImGui::Begin("Main Menu");
-
-    ImGui::Text("Window Launcher");
-
-    if (ImGui::Button("Open Submenu"))
-        show_submenu = true;
-
-    if (ImGui::Button("Open Console"))
-        show_console = true;
-
-    ImGui::End();
 
 // =========================
-// SUBMENU WINDOW (separate, closable)
+// TOP MENU BAR
+// =========================
+if (ImGui::BeginMainMenuBar())
+{
+    if (ImGui::BeginMenu("Windows"))
+    {
+        ImGui::MenuItem("Submenu", nullptr, &show_submenu);
+        ImGui::MenuItem("Console", nullptr, &show_console);
+        ImGui::EndMenu();
+    }
+
+    ImGui::EndMainMenuBar();
+}
+
+// =========================
+// SUBMENU WINDOW
 // =========================
 if (show_submenu)
 {
@@ -95,7 +98,7 @@ if (show_submenu)
 }
 
 // =========================
-// CONSOLE WINDOW (separate, closable CLI)
+// CONSOLE WINDOW
 // =========================
 if (show_console)
 {
@@ -103,11 +106,6 @@ if (show_console)
 
     static char input[256] = "";
     static std::vector<std::string> log;
-
-    auto AddLog = [&](const char* msg)
-    {
-        log.push_back(msg);
-    };
 
     // -------------------------
     // Output
@@ -148,18 +146,22 @@ if (show_console)
     ImGui::End();
 }
 
-ImGui::Render();
 // =========================
 // RENDER
 // =========================
 ImGui::Render();
-        int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
 
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+int display_w, display_h;
+glfwGetFramebufferSize(window, &display_w, &display_h);
+glViewport(0, 0, display_w, display_h);
+glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+glClear(GL_COLOR_BUFFER_BIT);
+
+ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        // Start frame
+// =========================
+// RENDER
+// =========================
 
         glfwSwapBuffers(window);
     }
