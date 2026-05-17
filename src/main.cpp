@@ -1,64 +1,21 @@
-#define STB_IMAGE_IMPLEMENTATION
-#include "../3rd_party/stb_image.h"
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+#include "helper/OpenGLHelper.hpp"
 
+#include "command/CommandGraph.hpp"
 #include <stdio.h>
+#include <iostream>
 #include <string>
-#include <vector>
 #include <cstring>
 #include <GLFW/glfw3.h>
 
+#include "ui/ConsoleWindow.hpp"
 #if defined(IMGUI_IMPL_OPENGL_LOADER_GLAD)
 #include <glad/glad.h>
+#else 
+#include <GL/gl.h>
 #endif
-GLuint LoadTextureFromFile(const char* path)
-{
-    int width, height, channels;
-
-    stbi_set_flip_vertically_on_load(true);
-
-    unsigned char* data =
-        stbi_load(path, &width, &height, &channels, 4);
-
-    if (!data)
-    {
-        printf("Failed to load image: %s\n", path);
-        return 0;
-    }
-
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexParameteri(GL_TEXTURE_2D,
-        GL_TEXTURE_MIN_FILTER,
-        GL_LINEAR);
-
-    glTexParameteri(GL_TEXTURE_2D,
-        GL_TEXTURE_MAG_FILTER,
-        GL_LINEAR);
-
-    // IMPORTANT
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA,
-        width,
-        height,
-        0,
-        GL_RGBA,
-        GL_UNSIGNED_BYTE,
-        data
-    );
-
-    stbi_image_free(data);
-
-    return texture;
-}
 
 int main() {
     // -----------------------
@@ -72,7 +29,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "ImGui App", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1920, 1080, "WAM01 VCU Panel", NULL, NULL);
     if (!window)
         return 1;
 
@@ -99,9 +56,23 @@ int main() {
     // Backend init
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
-    GLuint logo_texture =
-    LoadTextureFromFile("resources/logo.jpg");
+    GLuint logo_texture = OpenGLHelper::LoadTextureFromFile("src/resources/logo.jpg");
+   // -------------------------
+   CommandGraph graph;
+   auto hv = std::make_unique<CommandNode>("hv", CommandNode::Type::Literal);
 
+auto enable = std::make_unique<CommandNode>("enable", CommandNode::Type::Literal);
+
+enable->executor = [](CommandContext& ctx)
+{
+	std::cout << "HV" << std::endl;
+    ctx.Log("HV ENABLED");
+};
+
+hv->add(std::move(enable));
+graph.root.add(std::move(hv));
+
+ConsoleWindow console(graph);
     // -----------------------
     // Main loop
     // -----------------------
@@ -115,23 +86,21 @@ ImGui::NewFrame();
 // GLOBAL STATE
 // =========================
 static bool show_console = true;
-static bool show_submenu = true;
+static bool show_help = false;
 
 // =========================
 // TOP MENU BAR
 // =========================
 if (ImGui::BeginMainMenuBar())
 {
-	    ImGui::Image(
-        (ImTextureID)(intptr_t)logo_texture,
-        ImVec2(24, 24)
-    );
-    if (ImGui::BeginMenu("Windows"))
+	    //ImGui::Image( (ImTextureID)(intptr_t)logo_texture, ImVec2(1370/15, 402/15));
+    if (ImGui::Button("Console"))
     {
-
-        ImGui::MenuItem("Submenu", nullptr, &show_submenu);
-        ImGui::MenuItem("Console", nullptr, &show_console);
-        ImGui::EndMenu();
+	show_console = !show_console;
+    }
+    if (ImGui::Button("Help"))
+    {
+	    show_help = !show_help;
     }
 
     ImGui::EndMainMenuBar();
@@ -140,15 +109,19 @@ if (ImGui::BeginMainMenuBar())
 // =========================
 // SUBMENU WINDOW
 // =========================
-if (show_submenu)
+if (show_help)
 {
-    ImGui::Begin("Submenu", &show_submenu);
+    ImGui::Begin("Help", &show_help);
+    ImGui::Image(
+        (ImTextureID)(intptr_t)logo_texture,
+        ImVec2(1370/4,402/4)
+    );
 
-    ImGui::Text("This is a separate window");
-
-    static float slider = 0.5f;
-    ImGui::SliderFloat("Values", &slider, 0.0f, 1.0f);
-
+    ImGui::Text("This application was developed by Simon Wögerbauer");
+    ImGui::Text("See the project on Github:");
+    ImGui::SameLine();
+    ImGui::TextLinkOpenURL("simonwoegerb/WAM01_VCU_Panel","https://github.com/simonwoegerb/WAM01_VCU_Panel");
+    ImGui::Text("© 2026 FH OÖ Racing Team. All rights reserved.");
     ImGui::End();
 }
 
@@ -157,49 +130,9 @@ if (show_submenu)
 // =========================
 if (show_console)
 {
-    ImGui::Begin("Console", &show_console);
-
-    static char input[256] = "";
-    static std::vector<std::string> log;
-
-    // -------------------------
-    // Output
-    // -------------------------
-    ImGui::BeginChild("ConsoleOutput", ImVec2(0, -35), true);
-
-    for (auto& line : log)
-        ImGui::TextUnformatted(line.c_str());
-
-    ImGui::EndChild();
-
-    // -------------------------
-    // Input
-    // -------------------------
-    bool submit = false;
-
-    if (ImGui::InputText("##cmd", input, IM_ARRAYSIZE(input),
-        ImGuiInputTextFlags_EnterReturnsTrue))
-    {
-        submit = true;
-    }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("Enter"))
-        submit = true;
-
-    if (submit && input[0] != '\0')
-    {
-        log.push_back(std::string("> ") + input);
-
-        if (strcmp(input, "clear") == 0)
-            log.clear();
-
-        input[0] = '\0';
-    }
-
-    ImGui::End();
+ console.Draw(&show_console);
 }
+
 
 // =========================
 // RENDER
@@ -224,9 +157,11 @@ ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     // -----------------------
     // Cleanup
     // -----------------------
+    OpenGLHelper::DestroyTexture(logo_texture);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
 
     glfwDestroyWindow(window);
     glfwTerminate();

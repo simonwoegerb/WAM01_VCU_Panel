@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(WAM01_VCU_Panel LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # =========================
@@ -11,11 +11,14 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 
 # =========================
-# ImGui sources
+# Paths
 # =========================
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/imgui)
-set(3RD_PARTY_DIR ${CMAKE_SOURCE_DIR}/3rd_party)
+set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/3rd_party)
 
+# =========================
+# ImGui library
+# =========================
 set(IMGUI_SRC
     ${IMGUI_DIR}/imgui.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
@@ -30,25 +33,28 @@ add_library(imgui STATIC ${IMGUI_SRC})
 target_include_directories(imgui PUBLIC
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
-    ${3RD_PARTY_DIR}
 )
 
 # =========================
-# App
+# App sources
 # =========================
-add_executable(app
-    src/main.cpp
+file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS
+    src/*.cpp
 )
+
+add_executable(app ${SRC_FILES})
+
+# =========================
+# Includes (IMPORTANT: single source of truth)
+# =========================
 target_include_directories(app PRIVATE
-
-    ${CMAKE_SOURCE_DIR}/3rd_party
+    ${CMAKE_SOURCE_DIR}/src
+    ${THIRD_PARTY_DIR}
 )
 
-target_include_directories(app PRIVATE
-    ${IMGUI_DIR}
-    ${IMGUI_DIR}/backends
-)
-
+# =========================
+# Linking
+# =========================
 target_link_libraries(app PRIVATE
     imgui
     glfw
@@ -56,8 +62,18 @@ target_link_libraries(app PRIVATE
 )
 
 # =========================
-# Linux extra libs (needed sometimes)
+# Resources
+# =========================
+file(COPY src/resources DESTINATION ${CMAKE_BINARY_DIR})
+
+# =========================
+# Linux extras
 # =========================
 if(UNIX AND NOT APPLE)
     target_link_libraries(app PRIVATE dl pthread)
 endif()
+
+# =========================
+# Compile DB for clangd
+# =========================
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
