@@ -4,6 +4,7 @@
 #include "helper/OpenGLHelper.hpp"
 
 #include "command/CommandGraph.hpp"
+#include "ui/HelpWindow.hpp"
 #include <stdio.h>
 #include <iostream>
 #include <string>
@@ -73,6 +74,7 @@ hv->add(std::move(enable));
 graph.root.add(std::move(hv));
 
 ConsoleWindow console(graph);
+HelpWindow helpWindow;
     // -----------------------
     // Main loop
     // -----------------------
@@ -111,18 +113,7 @@ if (ImGui::BeginMainMenuBar())
 // =========================
 if (show_help)
 {
-    ImGui::Begin("Help", &show_help);
-    ImGui::Image(
-        (ImTextureID)(intptr_t)logo_texture,
-        ImVec2(1370/4,402/4)
-    );
-
-    ImGui::Text("This application was developed by Simon Wögerbauer");
-    ImGui::Text("See the project on Github:");
-    ImGui::SameLine();
-    ImGui::TextLinkOpenURL("simonwoegerb/WAM01_VCU_Panel","https://github.com/simonwoegerb/WAM01_VCU_Panel");
-    ImGui::Text("© 2026 FH OÖ Racing Team. All rights reserved.");
-    ImGui::End();
+	helpWindow.Draw(&show_help, &logo_texture);
 }
 
 // =========================
